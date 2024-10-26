@@ -6,23 +6,25 @@ const supabaseUrl = 'https://tqthmgwbohenijykixzb.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxdGhtZ3dib2hlbmlqeWtpeHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5NjcwMDIsImV4cCI6MjA0NTU0MzAwMn0.QNo46wvV64TCvILyvPRocMKAQjVH9QyZYmXo1SZAcWU'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Получаем Telegram ID из URL параметров
-const urlParams = new URLSearchParams(window.location.search);
-const telegramId = urlParams.get('id');
-
-// Добавляем отображение Telegram ID в правом верхнем углу
-const telegramIdDisplay = document.createElement('div');
-telegramIdDisplay.style.position = 'absolute';
-telegramIdDisplay.style.top = '10px';
-telegramIdDisplay.style.right = '10px';
-telegramIdDisplay.style.fontSize = '12px';
-telegramIdDisplay.textContent = `ID: ${telegramId}`;
-document.body.appendChild(telegramIdDisplay);
-
 let userData = null;
+
+// Функция для получения Telegram ID
+function getTelegramId() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        return window.Telegram.WebApp.initDataUnsafe.user.id;
+    }
+    console.error('Telegram WebApp is not available');
+    return null;
+}
 
 // Функция для получения или создания пользователя
 async function getOrCreateUser() {
+    const telegramId = getTelegramId();
+    if (!telegramId) {
+        console.error('Failed to get Telegram ID');
+        return null;
+    }
+
     const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -59,6 +61,12 @@ async function getOrCreateUser() {
 
 // Функция для обновления данных пользователя
 async function updateUserData(updates) {
+    const telegramId = getTelegramId();
+    if (!telegramId) {
+        console.error('Failed to get Telegram ID for update');
+        return;
+    }
+
     const { data, error } = await supabase
         .from('users')
         .update(updates)
@@ -75,16 +83,23 @@ async function updateUserData(updates) {
 
 // Функция для обновления отображения
 function updateDisplay() {
-    currentEnergyTxt.textContent = userData.current_energy;
-    countTxt.textContent = userData.score;
-    tapIncomeTxt.textContent = userData.tap_income;
-    coinsForUpTxt.textContent = userData.coins_for_up;
-    hourIncomeTxt.textContent = userData.hour_income;
-    maxEnergyTxt.textContent = userData.max_energy;
+    if (!userData) return;
+
+    document.querySelector('.current-energy').textContent = userData.current_energy;
+    document.querySelector('.count__txt').textContent = userData.score;
+    document.querySelector('.tap-income').textContent = userData.tap_income;
+    document.querySelector('.coins-for-up').textContent = userData.coins_for_up;
+    document.querySelector('.hour-income').textContent = userData.hour_income;
+    document.querySelector('.max-energy').textContent = userData.max_energy;
 }
 
 // Инициализация приложения
 async function initApp() {
+    // Ждем, пока Telegram WebApp будет готов
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+    }
+
     userData = await getOrCreateUser();
     if (!userData) {
         console.error('Failed to initialize user data');
@@ -113,7 +128,7 @@ async function initApp() {
 }
 
 // Обработчик клика по кнопке
-button.addEventListener('click', async function (event) {
+document.querySelector('.button__img').addEventListener('click', async function (event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -150,7 +165,7 @@ async function upgrade() {
     }
 }
 
-upgradeButton.addEventListener("click", upgrade);
+document.querySelector('.footer__upgrade').addEventListener("click", upgrade);
 
 // Запускаем приложение
 initApp();
