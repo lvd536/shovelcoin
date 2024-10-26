@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shovel Combat Web</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Добавляем скрипты Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sections">
+            <div class="section">
+                <div class="section__title" style="color: #967e76;">Прибыль за тап</div>
+                <div class="section__info">
+                    <div class="section__img">
+                        <img src="img/hamster-coin.png" alt="">
+                    </div>
+                    <div class="section__text">+<span class="tap-income">5</span></div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section__title" style="color: #797bbe;">Монет для апа</div>
+                <div class="section__info">
+                    <div class="section__text"><span class="coins-for-up">1М</span></div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section__title" style="color: #9dbda6;">Прибыль в час</div>
+                <div class="section__info">
+                    <div class="section__img">
+                        <img src="img/hamster-coin.png" alt="">
+                    </div>
+                    <div class="section__text">+<span class="hour-income">10К</span></div>
+                </div>
+
+            </div>
+        </div>
+        <div class="count">
+            <div class="count__img">
+                <img src="img/hamster-coin.png" alt="">
+            </div>
+            <div class="count__txt">1000</div>
+        </div>
+        <div class="button">
+            <div class="button__img">
+                <img src="img/hamster.jpg" alt="">
+            </div>
+        </div>
+        <div class="footer">
+            <div class="footer__energy">
+                <div class="energy__img">
+                    <img src="img/energy.png" alt="">
+                </div>
+                <div class="energy__text">
+                    <span class="current-energy">1000</span>/<span class="max-energy">1000</span>
+                </div>
+            </div>
+            <div class="footer__upgrade">
+                <div class="upgrade__img">
+                    <img src="img/rocket.png" alt="">
+                </div>
+                <div class="upgrade__button">Upgrade</div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
