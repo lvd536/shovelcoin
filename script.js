@@ -1,5 +1,5 @@
 // Импортируем Supabase клиент
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/+esm'
 
 // Инициализируем Supabase клиент
 const supabaseUrl = 'https://tqthmgwbohenijykixzb.supabase.co'
@@ -21,10 +21,13 @@ function debugLog(message) {
 // Функция для получения Telegram ID из WebApp
 function getTelegramId() {
     if (window.Telegram && window.Telegram.WebApp) {
-        debugLog('Telegram WebApp data: ' + JSON.stringify(window.Telegram.WebApp.initDataUnsafe));
-        return window.Telegram.WebApp.initDataUnsafe.user?.id?.toString();
+        const webAppData = window.Telegram.WebApp.initDataUnsafe;
+        debugLog('Telegram WebApp data: ' + JSON.stringify(webAppData));
+        if (webAppData && webAppData.user && webAppData.user.id) {
+            return webAppData.user.id.toString();
+        }
     }
-    debugLog('Telegram WebApp is not available');
+    debugLog('Telegram WebApp user data is not available');
     return null;
 }
 
@@ -84,21 +87,24 @@ async function getOrCreateUser() {
 async function updateUserData(updates) {
     const telegramId = getTelegramId();
     if (!telegramId) {
-        console.error('Failed to get Telegram ID for update');
+        debugLog('Failed to get Telegram ID for update');
         return;
     }
 
-    const { data, error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', telegramId)
-        .single();
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('id', telegramId)
+            .single();
 
-    if (error) {
-        console.error('Error updating user data:', error);
-    } else {
+        if (error) throw error;
+
         userData = { ...userData, ...updates };
         updateDisplay();
+        debugLog('User data updated successfully');
+    } catch (error) {
+        debugLog('Error updating user data: ' + error.message);
     }
 }
 
@@ -141,7 +147,7 @@ async function initApp() {
             if (userData.current_energy <= userData.max_energy - 3) {
                 userData.current_energy += 3;
                 await updateUserData({ current_energy: userData.current_energy });
-            } else {
+            } else if (userData.current_energy < userData.max_energy) {
                 userData.current_energy = userData.max_energy;
                 await updateUserData({ current_energy: userData.current_energy });
             }
@@ -163,36 +169,54 @@ document.querySelector('.button__img').addEventListener('click', async function 
     event.preventDefault();
     event.stopPropagation();
 
-    if (userData.current_energy >= userData.tap_income) {
+    if (userData && userData.current_energy >= userData.tap_income) {
         userData.current_energy -= userData.tap_income;
         userData.score += userData.tap_income;
         await updateUserData({
             current_energy: userData.current_energy,
             score: userData.score
         });
+    } else {
+        debugLog('Not enough energy or user data not initialized');
     }
 });
 
 // Функция апгрейда
 async function upgrade() {
-    if (userData.score >= userData.coins_for_up) {
+    if (userData && userData.score >= userData.coins_for_up) {
+        const oldScore = userData.score;
+        const oldCoinsForUp = userData.coins_for_up;
+        const oldHourIncome = userData.hour_income;
+        const oldMaxEnergy = userData.max_energy;
+        const oldTapIncome = userData.tap_income;
+
         userData.score -= userData.coins_for_up;
         userData.coins_for_up += 10000;
         userData.hour_income += 3600;
         userData.max_energy += 1000;
         userData.tap_income++;
 
-        await updateUserData({
-            score: userData.score,
-            coins_for_up: userData.coins_for_up,
-            hour_income: userData.hour_income,
-            max_energy: userData.max_energy,
-            tap_income: userData.tap_income
-        });
+        try {
+            await updateUserData({
+                score: userData.score,
+                coins_for_up: userData.coins_for_up,
+                hour_income: userData.hour_income,
+                max_energy: userData.max_energy,
+                tap_income: userData.tap_income
+            });
 
-        console.log(`Апгрейд успешен! Новый часовой доход: ${userData.hour_income}`);
+            debugLog(`Апгрейд успешен! Новый часовой доход: ${userData.hour_income}`);
+        } catch (error) {
+            // Если произошла ошибка, возвращаем старые значения
+            userData.score = oldScore;
+            userData.coins_for_up = oldCoinsForUp;
+            userData.hour_income = oldHourIncome;
+            userData.max_energy = oldMaxEnergy;
+            userData.tap_income = oldTapIncome;
+            debugLog('Ошибка при выполнении апгрейда: ' + error.message);
+        }
     } else {
-        console.log("Недостаточно монет для апгрейда.");
+        debugLog("Недостаточно монет для апгрейда или пользовательские данные не инициализированы.");
     }
 }
 
