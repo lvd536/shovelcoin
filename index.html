@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hamster Kombat Copy</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
     <div class="container">
+        <!-- Добавляем элемент для отображения отладочной информации -->
+        <div id="debug-info" style="background-color: rgba(0,0,0,0.7); color: white; padding: 10px; margin-bottom: 10px; max-height: 200px; overflow-y: auto;"></div>
+        
         <div class="sections">
             <div class="section">
                 <div class="section__title" style="color: #967e76;">Прибыль за тап</div>
@@ -67,7 +70,7 @@
             </div>
         </div>
     </div>
-    <script src="script.js" type="module"></script>
+    <script type="module" src="script.js"></script>
 </body>
 
 </html>

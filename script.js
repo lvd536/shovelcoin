@@ -8,12 +8,23 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 let userData = null;
 
+// Функция для отображения отладочной информации
+function debugLog(message) {
+    const debugElement = document.getElementById('debug-info');
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+    debugElement.appendChild(logEntry);
+    debugElement.scrollTop = debugElement.scrollHeight;
+    console.log(message); // Оставляем вывод в консоль для дополнительной отладки
+}
+
 // Функция для получения Telegram ID из WebApp
 function getTelegramId() {
     if (window.Telegram && window.Telegram.WebApp) {
-        return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+        debugLog('Telegram WebApp data: ' + JSON.stringify(window.Telegram.WebApp.initDataUnsafe));
+        return window.Telegram.WebApp.initDataUnsafe.user?.id?.toString();
     }
-    console.error('Telegram WebApp is not available');
+    debugLog('Telegram WebApp is not available');
     return null;
 }
 
@@ -21,17 +32,28 @@ function getTelegramId() {
 async function getOrCreateUser() {
     const telegramId = getTelegramId();
     if (!telegramId) {
-        console.error('Failed to get Telegram ID');
+        debugLog('Failed to get Telegram ID');
         return null;
     }
 
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', telegramId)
-        .single();
+    debugLog('Attempting to get user with ID: ' + telegramId);
 
-    if (error || !data) {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', telegramId)
+            .single();
+
+        if (error) throw error;
+
+        if (data) {
+            debugLog('User found: ' + JSON.stringify(data));
+            return data;
+        }
+
+        debugLog('User not found, creating new user');
+
         const newUser = {
             id: telegramId,
             name: 'New Player',
@@ -48,15 +70,14 @@ async function getOrCreateUser() {
             .insert(newUser)
             .single();
 
-        if (createError) {
-            console.error('Error creating user:', createError);
-            return null;
-        }
+        if (createError) throw createError;
 
+        debugLog('New user created: ' + JSON.stringify(createdUser));
         return createdUser;
+    } catch (error) {
+        debugLog('Error in getOrCreateUser: ' + error.message);
+        return null;
     }
-
-    return data;
 }
 
 // Функция для обновления данных пользователя
@@ -95,40 +116,46 @@ function updateDisplay() {
 
 // Инициализация приложения
 async function initApp() {
-    // Ждем, пока Telegram WebApp будет готов
+    debugLog('Initializing app...');
+    
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.ready();
-        console.log('Telegram WebApp is ready');
-        console.log('User:', window.Telegram.WebApp.initDataUnsafe.user);
+        debugLog('Telegram WebApp is ready');
+        debugLog('User: ' + JSON.stringify(window.Telegram.WebApp.initDataUnsafe.user));
     } else {
-        console.error('Telegram WebApp is not available');
+        debugLog('Telegram WebApp is not available');
     }
 
-    userData = await getOrCreateUser();
-    if (!userData) {
-        console.error('Failed to initialize user data');
-        return;
-    }
-
-    updateDisplay();
-
-    // Обновление энергии
-    setInterval(async function refillEnergy() {
-        if (userData.current_energy <= userData.max_energy - 3) {
-            userData.current_energy += 3;
-            await updateUserData({ current_energy: userData.current_energy });
-        } else {
-            userData.current_energy = userData.max_energy;
-            await updateUserData({ current_energy: userData.current_energy });
+    try {
+        userData = await getOrCreateUser();
+        if (!userData) {
+            debugLog('Failed to initialize user data');
+            return;
         }
-    }, 3000);
 
-    // Пассивный доход
-    setInterval(async function farmMoney() {
-        const secondIncome = Math.round(userData.hour_income / 3600);
-        userData.score += secondIncome;
-        await updateUserData({ score: userData.score });
-    }, 1000);
+        debugLog('User data initialized: ' + JSON.stringify(userData));
+        updateDisplay();
+
+        // Обновление энергии
+        setInterval(async function refillEnergy() {
+            if (userData.current_energy <= userData.max_energy - 3) {
+                userData.current_energy += 3;
+                await updateUserData({ current_energy: userData.current_energy });
+            } else {
+                userData.current_energy = userData.max_energy;
+                await updateUserData({ current_energy: userData.current_energy });
+            }
+        }, 3000);
+
+        // Пассивный доход
+        setInterval(async function farmMoney() {
+            const secondIncome = Math.round(userData.hour_income / 3600);
+            userData.score += secondIncome;
+            await updateUserData({ score: userData.score });
+        }, 1000);
+    } catch (error) {
+        debugLog('Error during app initialization: ' + error.message);
+    }
 }
 
 // Обработчик клика по кнопке
