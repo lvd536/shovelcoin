@@ -138,21 +138,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Получаем Telegram ID пользователя
     const tgId = window.Telegram.WebApp.initDataUnsafe.user.id;
+    document.getElementById('tgId').textContent = tgId;
 
     // Функция для загрузки данных пользователя
     function loadUserData() {
         db.collection('players').doc(tgId.toString()).get().then((doc) => {
             if (doc.exists) {
                 const data = doc.data();
-                localStorage.setItem("tap-income", data.tapIncome);
-                localStorage.setItem("max-energy", data.maxEnergy);
-                localStorage.setItem("coins-for-up", data.coinsForUp);
-                localStorage.setItem("coin-count", data.coinCount);
-                localStorage.setItem("hour-income", data.hourIncome);
-                localStorage.setItem("current-energy", data.currentEnergy);
-
-                // Обновляем отображение на странице
+                Object.keys(data).forEach(key => {
+                    localStorage.setItem(key, data[key]);
+                });
                 updateDisplay();
+            } else {
+                // Если данных нет в Firebase, используем локальные данные
+                saveUserData();
             }
         }).catch((error) => {
             console.error("Ошибка при загрузке данных пользователя:", error);
@@ -184,6 +183,11 @@ document.addEventListener('DOMContentLoaded', function() {
         hourIncomeTxt.textContent = localStorage.getItem("hour-income");
         maxEnergyTxt.textContent = localStorage.getItem("max-energy");
     }
+
+    // Обработчик для кнопки таблицы лидеров
+    document.getElementById('leaderboardButton').addEventListener('click', function() {
+        window.location.href = 'leaderboard.html';
+    });
 
     // Загружаем данные пользователя при запуске
     loadUserData();

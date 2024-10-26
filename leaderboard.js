@@ -17,23 +17,44 @@ const db = firebase.firestore();
 
 // Функция для получения и отображения топ-10 игроков
 function displayLeaderboard() {
-  db.collection('players').orderBy('coinCount', 'desc').limit(10).onSnapshot((snapshot) => {
-    const leaderboardBody = document.getElementById('leaderboardBody');
-    leaderboardBody.innerHTML = '';
-    
-    snapshot.forEach((doc, index) => {
-      const player = doc.data();
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>Player ${doc.id.slice(-4)}</td>
-        <td>${player.coinCount}</td>
-      `;
-      leaderboardBody.appendChild(row);
+    db.collection('players').orderBy('coinCount', 'desc').limit(10).get().then((snapshot) => {
+        const leaderboardBody = document.getElementById('leaderboardBody');
+        leaderboardBody.innerHTML = '';
+        
+        snapshot.docs.forEach((doc, index) => {
+            const player = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>Player ${doc.id.slice(-4)}</td>
+                <td>${player.coinCount}</td>
+            `;
+            leaderboardBody.appendChild(row);
+        });
+
+        // Сохраняем топ-10 в localStorage
+        localStorage.setItem('leaderboard', JSON.stringify(snapshot.docs.map(doc => ({
+            id: doc.id,
+            coinCount: doc.data().coinCount
+        }))));
+    }).catch((error) => {
+        console.error("Ошибка при получении данных таблицы лидеров:", error);
+        
+        // Если есть ошибка, пытаемся загрузить данные из localStorage
+        const localLeaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+        const leaderboardBody = document.getElementById('leaderboardBody');
+        leaderboardBody.innerHTML = '';
+        
+        localLeaderboard.forEach((player, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>Player ${player.id.slice(-4)}</td>
+                <td>${player.coinCount}</td>
+            `;
+            leaderboardBody.appendChild(row);
+        });
     });
-  }, (error) => {
-    console.error("Ошибка при получении данных таблицы лидеров:", error);
-  });
 }
 
 // Вызываем функцию при загрузке страницы

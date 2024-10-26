@@ -154,3 +154,28 @@ body {
 #leaderboard tr:hover {
     background-color: #ddd;
 }
+
+.footer__leaderboard {
+    margin-top: 10px;
+}
+
+#leaderboardButton {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#leaderboardButton:hover {
+    background-color: #45a049;
+}
+
+#tgInfo {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+}
