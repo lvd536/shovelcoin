@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     clickButton.addEventListener('click', () => {
         coinCount++;
         coinCountElement.textContent = coinCount;
+        // Сохраняем данные при каждом клике
+        saveUserData();
         updateLeaderboard();
     });
 
@@ -50,23 +52,21 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboardList.innerHTML = '';
         leaderboard.slice(0, 10).forEach((user, index) => {
             const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${user.name}: ${user.score}`;
+            li.textContent = `${index + 1}. ${user.name} (ID: ${user.id}): ${user.score}`;
             leaderboardList.appendChild(li);
         });
-
-        // Отправка данных на сервер
-        sendLeaderboardData();
     }
 
-    function sendLeaderboardData() {
-        set(ref(database, 'leaderboard/' + userId), {
+    function saveUserData() {
+        set(ref(database, 'users/' + userId), {
             name: userName,
-            score: coinCount
+            score: coinCount,
+            id: userId // Добавляем сохранение ID пользователя
         });
     }
 
     function loadUserData() {
-        const userRef = ref(database, 'leaderboard/' + userId);
+        const userRef = ref(database, 'users/' + userId);
         onValue(userRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadLeaderboard() {
-        const leaderboardRef = query(ref(database, 'leaderboard'), orderByChild('score'), limitToLast(10));
+        const leaderboardRef = query(ref(database, 'users'), orderByChild('score'), limitToLast(10));
         onValue(leaderboardRef, (snapshot) => {
             const data = snapshot.val();
             leaderboard = [];
@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     score: data[id].score
                 });
             }
+            leaderboard.reverse(); // Переворачиваем массив, так как limitToLast возвращает в обратном порядке
             updateLeaderboard();
         });
     }
