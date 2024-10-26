@@ -1,22 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+import { createClient } from '@supabase/supabase-js'
 
-// Инициализация Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDzwDUN9-X9B4uTxomjJAz4oNIREEVXYqo",
-  authDomain: "shovel-coin.firebaseapp.com",
-  projectId: "shovel-coin",
-  storageBucket: "shovel-coin.appspot.com",
-  messagingSenderId: "485128858471",
-  appId: "1:485128858471:web:601e1787a95ec9bdea5dc2",
-  measurementId: "G-77Z9QR30EK"
-};
+// Инициализация Supabase
+const supabaseUrl = 'https://tqthmgwbohenijykixzb.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxdGhtZ3dib2hlbmlqeWtpeHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5NjcwMDIsImV4cCI6MjA0NTU0MzAwMn0.QNo46wvV64TCvILyvPRocMKAQjVH9QyZYmXo1SZAcWU'
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 let currentUser = null;
-
-// ... остальные объявления переменных остаются без изменений ...
 
 // Объявляем переменные для элементов DOM
 let button, upgradeButton, currentEnergyTxt, countTxt, tapIncomeTxt, coinsForUpTxt, hourIncomeTxt, maxEnergyTxt;
@@ -34,9 +25,9 @@ function initializeDOMElements() {
 }
 
 // Функция для аутентификации пользователя по Telegram ID
-function authenticateUser(telegramId) {
-    currentUser = { uid: telegramId };
-    loadUserData();
+async function authenticateUser(telegramId) {
+    currentUser = { id: telegramId };
+    await loadUserData();
     startGameLoops();
 }
 
@@ -48,57 +39,87 @@ function startGameLoops() {
 
 // Функция для загрузки данных пользователя
 async function loadUserData() {
-    const userDoc = doc(db, 'users', currentUser.uid);
-    const docSnap = await getDoc(userDoc);
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
 
-    if (docSnap.exists()) {
-        const data = docSnap.data();
+    if (error) {
+        console.error("Ошибка при загрузке данных:", error);
+        return;
+    }
+
+    if (data) {
         updateUI(data);
     } else {
-        initializeUserData();
+        await initializeUserData();
     }
 }
 
 // Функция для инициализации данных нового пользователя
 async function initializeUserData() {
     const initialData = {
-        tapIncome: 1,
-        maxEnergy: 1000,
-        coinsForUp: 1000,
-        coinCount: 0,
-        hourIncome: 3600,
-        currentEnergy: 1000
+        id: currentUser.id,
+        tap_income: 1,
+        max_energy: 1000,
+        coins_for_up: 1000,
+        coin_count: 0,
+        hour_income: 3600,
+        current_energy: 1000
     };
     
-    const userDoc = doc(db, 'users', currentUser.uid);
-    await setDoc(userDoc, initialData);
+    const { data, error } = await supabase
+        .from('users')
+        .insert([initialData]);
+
+    if (error) {
+        console.error("Ошибка при инициализации данных:", error);
+        return;
+    }
+
     updateUI(initialData);
 }
 
 // Функция для обновления UI
 function updateUI(data) {
-    currentEnergyTxt.textContent = data.currentEnergy;
-    countTxt.textContent = data.coinCount;
-    tapIncomeTxt.textContent = data.tapIncome;
-    coinsForUpTxt.textContent = data.coinsForUp;
-    hourIncomeTxt.textContent = data.hourIncome;
-    maxEnergyTxt.textContent = data.maxEnergy;
+    currentEnergyTxt.textContent = data.current_energy;
+    countTxt.textContent = data.coin_count;
+    tapIncomeTxt.textContent = data.tap_income;
+    coinsForUpTxt.textContent = data.coins_for_up;
+    hourIncomeTxt.textContent = data.hour_income;
+    maxEnergyTxt.textContent = data.max_energy;
 }
 
-// Функция для обновления данных в Firebase
-async function updateFirebase(updates) {
-    const userDoc = doc(db, 'users', currentUser.uid);
-    await updateDoc(userDoc, updates);
+// Функция для обновления данных в Supabase
+async function updateSupabase(updates) {
+    const { data, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', currentUser.id);
+
+    if (error) {
+        console.error("Ошибка при обновлении данных:", error);
+    }
 }
 
 // Обновляем функцию refillEnergy
 async function refillEnergy() {
     if (!currentUser) return;
-    const userDoc = doc(db, 'users', currentUser.uid);
-    const docSnap = await getDoc(userDoc);
-    const data = docSnap.data();
-    let currentEnergy = data.currentEnergy;
-    const maxEnergy = data.maxEnergy;
+    
+    const { data, error } = await supabase
+        .from('users')
+        .select('current_energy, max_energy')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (error) {
+        console.error("Ошибка при получении данных:", error);
+        return;
+    }
+
+    let currentEnergy = data.current_energy;
+    const maxEnergy = data.max_energy;
     
     if (currentEnergy <= maxEnergy - 3) {
         currentEnergy += 3;
@@ -106,7 +127,7 @@ async function refillEnergy() {
         currentEnergy = maxEnergy;
     }
     
-    await updateFirebase({ currentEnergy: currentEnergy });
+    await updateSupabase({ current_energy: currentEnergy });
     currentEnergyTxt.textContent = currentEnergy;
 }
 
@@ -118,20 +139,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentUser) return;
 
-        const userDoc = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(userDoc);
-        const data = docSnap.data();
-        let currentEnergy = data.currentEnergy;
-        const tapIncome = data.tapIncome;
-        let coinCount = data.coinCount;
+        const { data, error } = await supabase
+            .from('users')
+            .select('current_energy, tap_income, coin_count')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (error) {
+            console.error("Ошибка при получении данных:", error);
+            return;
+        }
+
+        let currentEnergy = data.current_energy;
+        const tapIncome = data.tap_income;
+        let coinCount = data.coin_count;
 
         if (currentEnergy >= tapIncome) {
             currentEnergy -= tapIncome;
             coinCount += tapIncome;
 
-            await updateFirebase({
-                currentEnergy: currentEnergy,
-                coinCount: coinCount
+            await updateSupabase({
+                current_energy: currentEnergy,
+                coin_count: coinCount
             });
 
             currentEnergyTxt.textContent = currentEnergy;
@@ -145,28 +174,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Обновляем функцию upgrade
 async function upgrade() {
-    const userDoc = doc(db, 'users', currentUser.uid);
-    const docSnap = await getDoc(userDoc);
-    const data = docSnap.data();
-    let coinCount = data.coinCount;
-    let coinsForUpgrade = data.coinsForUp;
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (error) {
+        console.error("Ошибка при получении данных:", error);
+        return;
+    }
+
+    let coinCount = data.coin_count;
+    let coinsForUpgrade = data.coins_for_up;
     
     if (coinCount >= coinsForUpgrade) {
         coinCount -= coinsForUpgrade;
         coinsForUpgrade += 10000;
         
         const updates = {
-            coinCount: coinCount,
-            coinsForUp: coinsForUpgrade,
-            hourIncome: data.hourIncome + 3600,
-            maxEnergy: data.maxEnergy + 1000,
-            tapIncome: data.tapIncome + 1
+            coin_count: coinCount,
+            coins_for_up: coinsForUpgrade,
+            hour_income: data.hour_income + 3600,
+            max_energy: data.max_energy + 1000,
+            tap_income: data.tap_income + 1
         };
         
-        await updateFirebase(updates);
+        await updateSupabase(updates);
         updateUI({ ...data, ...updates });
         
-        console.log(`Upgrade successful! New hour income: ${updates.hourIncome}`);
+        console.log(`Upgrade successful! New hour income: ${updates.hour_income}`);
     } else {
         console.log("Not enough coins for upgrade.");
     }
@@ -175,11 +212,20 @@ async function upgrade() {
 // Обновляем функцию farmMoney
 async function farmMoney() {
     if (!currentUser) return;
-    const userDoc = doc(db, 'users', currentUser.uid);
-    const docSnap = await getDoc(userDoc);
-    const data = docSnap.data();
-    let hourIncome = data.hourIncome;
-    let coins = data.coinCount;
+
+    const { data, error } = await supabase
+        .from('users')
+        .select('hour_income, coin_count')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (error) {
+        console.error("Ошибка при получении данных:", error);
+        return;
+    }
+
+    let hourIncome = data.hour_income;
+    let coins = data.coin_count;
 
     let secondIncome = Math.round(hourIncome / 3600);
     coins += secondIncome;
@@ -187,7 +233,7 @@ async function farmMoney() {
     console.log(`Passive income per second: ${secondIncome}`);
     console.log(`New coin count: ${coins}`);
 
-    await updateFirebase({ coinCount: coins });
+    await updateSupabase({ coin_count: coins });
     countTxt.textContent = coins;
 }
 
@@ -207,5 +253,3 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Telegram ID не найден в URL");
     }
 });
-
-// ... остальной код остается без изменений ...
