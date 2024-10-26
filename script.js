@@ -57,14 +57,13 @@ async function getOrCreateUser() {
         let { data, error } = await supabase
             .from('users')
             .select('*')
-            .eq('id', telegramId)
-            .single();
+            .eq('id', telegramId);
 
         if (error) throw error;
 
-        if (data) {
-            debugLog('User found: ' + JSON.stringify(data));
-            return data;
+        if (data && data.length > 0) {
+            debugLog('User found: ' + JSON.stringify(data[0]));
+            return data[0];
         }
 
         const newUser = {
@@ -88,14 +87,13 @@ async function getOrCreateUser() {
 
         const { data: createdUser, error: createError } = await supabase
             .from('users')
-            .insert(newUser)
-            .select()
-            .single();
+            .insert([newUser])
+            .select();
 
         if (createError) throw createError;
 
-        debugLog('New user created: ' + JSON.stringify(createdUser));
-        return createdUser;
+        debugLog('New user created: ' + JSON.stringify(createdUser[0]));
+        return createdUser[0];
     } catch (error) {
         debugLog('Error in getOrCreateUser: ' + error.message);
         return null;
@@ -132,8 +130,8 @@ async function updateUserData(updates) {
 function updateDisplay() {
     if (!userData) return;
 
-    gsap.to('.current-energy', { textContent: userData.current_energy, duration: 0.5, snap: { textContent: 1 } });
-    gsap.to('.count__txt', { textContent: userData.score, duration: 0.5, snap: { textContent: 1 } });
+    gsap.to('.current-energy', { textContent: Math.floor(userData.current_energy), duration: 0.5, snap: { textContent: 1 } });
+    gsap.to('.count__txt', { textContent: Math.floor(userData.score), duration: 0.5, snap: { textContent: 1 } });
     gsap.to('.tap-income', { textContent: userData.tap_income, duration: 0.5, snap: { textContent: 1 } });
     gsap.to('.coins-for-up', { textContent: userData.coins_for_up, duration: 0.5, snap: { textContent: 1 } });
     gsap.to('.hour-income', { textContent: userData.hour_income, duration: 0.5, snap: { textContent: 1 } });
@@ -252,12 +250,13 @@ async function initApp() {
 
         setInterval(async function refillEnergy() {
             if (!userData) return;
-            const energyRegenRate = 3 + userData.upgrade_levels.energyRegen * upgrades.energyRegen.effect;
+            const energyRegenRate = 1 + userData.upgrade_levels.energyRegen * upgrades.energyRegen.effect;
             if (userData.current_energy < userData.max_energy) {
                 userData.current_energy = Math.min(userData.current_energy + energyRegenRate, userData.max_energy);
                 await updateUserData({ current_energy: userData.current_energy });
+                updateDisplay();
             }
-        }, 3000);
+        }, 1000);
 
         setInterval(async function farmMoney() {
             if (!userData) return;
@@ -266,6 +265,7 @@ async function initApp() {
             userData.total_earned += secondIncome;
             await updateUserData({ score: userData.score, total_earned: userData.total_earned });
             checkRankUp();
+            updateDisplay();
         }, 1000);
     } catch (error) {
         debugLog('Error during app initialization: ' + error.message);
