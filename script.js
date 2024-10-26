@@ -1,93 +1,156 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+// Импортируем Supabase клиент
+import { createClient } from '@supabase/supabase-js'
 
-// Конфигурация Supabase
+// Инициализируем Supabase клиент
 const supabaseUrl = 'https://tqthmgwbohenijykixzb.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxdGhtZ3dib2hlbmlqeWtpeHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5NjcwMDIsImV4cCI6MjA0NTU0MzAwMn0.QNo46wvV64TCvILyvPRocMKAQjVH9QyZYmXo1SZAcWU'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-let tg = window.Telegram.WebApp;
-let coinCount = 0;
-let leaderboard = [];
-let userId, userName;
+// Получаем Telegram ID из URL параметров
+const urlParams = new URLSearchParams(window.location.search);
+const telegramId = urlParams.get('id');
 
-document.addEventListener('DOMContentLoaded', () => {
-    const clickButton = document.getElementById('clickButton');
-    const coinCountElement = document.getElementById('coinCount');
-    const leaderboardList = document.getElementById('leaderboardList');
+// Добавляем отображение Telegram ID в правом верхнем углу
+const telegramIdDisplay = document.createElement('div');
+telegramIdDisplay.style.position = 'absolute';
+telegramIdDisplay.style.top = '10px';
+telegramIdDisplay.style.right = '10px';
+telegramIdDisplay.style.fontSize = '12px';
+telegramIdDisplay.textContent = `ID: ${telegramId}`;
+document.body.appendChild(telegramIdDisplay);
 
-    tg.expand();
+let userData = null;
 
-    // Получаем данные пользователя
-    userId = tg.initDataUnsafe.user.id.toString(); // Преобразуем в строку
-    userName = tg.initDataUnsafe.user.first_name;
+// Функция для получения или создания пользователя
+async function getOrCreateUser() {
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', telegramId)
+        .single();
 
-    // Загружаем данные пользователя из Supabase
-    loadUserData();
+    if (error || !data) {
+        const newUser = {
+            id: telegramId,
+            name: 'New Player',
+            score: 0,
+            tap_income: 1,
+            max_energy: 1000,
+            coins_for_up: 1000,
+            hour_income: 3600,
+            current_energy: 1000
+        };
 
-    clickButton.addEventListener('click', () => {
-        coinCount++;
-        coinCountElement.textContent = coinCount;
-        // Сохраняем данные при каждом клике
-        saveUserData();
-    });
-
-    async function updateLeaderboard() {
-        const { data, error } = await supabase
+        const { data: createdUser, error: createError } = await supabase
             .from('users')
-            .select()
-            .order('score', { ascending: false })
-            .limit(10);
-
-        if (error) {
-            console.error('Error loading leaderboard:', error);
-            return;
-        }
-
-        leaderboard = data.map(user => ({
-            ...user,
-            score: Number(user.score)
-        }));
-
-        leaderboardList.innerHTML = '';
-        leaderboard.forEach((user, index) => {
-            const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${user.name}: ${user.score}`;
-            leaderboardList.appendChild(li);
-        });
-    }
-
-    async function saveUserData() {
-        const { data, error } = await supabase
-            .from('users')
-            .upsert({ id: userId, name: userName, score: coinCount }, { onConflict: 'id' })
-        
-        if (error) {
-            console.error('Error saving user data:', error);
-        } else {
-            updateLeaderboard();
-        }
-    }
-
-    async function loadUserData() {
-        const { data, error } = await supabase
-            .from('users')
-            .select()
-            .eq('id', userId)
+            .insert(newUser)
             .single();
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                // Пользователь не найден, создаем новую запись
-                coinCount = 0;
-                await saveUserData();
-            } else {
-                console.error('Error loading user data:', error);
-            }
-        } else if (data) {
-            coinCount = Number(data.score);
-            coinCountElement.textContent = coinCount;
+        if (createError) {
+            console.error('Error creating user:', createError);
+            return null;
         }
 
-        updateLeaderboard();
+        return createdUser;
+    }
+
+    return data;
+}
+
+// Функция для обновления данных пользователя
+async function updateUserData(updates) {
+    const { data, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', telegramId)
+        .single();
+
+    if (error) {
+        console.error('Error updating user data:', error);
+    } else {
+        userData = { ...userData, ...updates };
+        updateDisplay();
+    }
+}
+
+// Функция для обновления отображения
+function updateDisplay() {
+    currentEnergyTxt.textContent = userData.current_energy;
+    countTxt.textContent = userData.score;
+    tapIncomeTxt.textContent = userData.tap_income;
+    coinsForUpTxt.textContent = userData.coins_for_up;
+    hourIncomeTxt.textContent = userData.hour_income;
+    maxEnergyTxt.textContent = userData.max_energy;
+}
+
+// Инициализация приложения
+async function initApp() {
+    userData = await getOrCreateUser();
+    if (!userData) {
+        console.error('Failed to initialize user data');
+        return;
+    }
+
+    updateDisplay();
+
+    // Обновление энергии
+    setInterval(async function refillEnergy() {
+        if (userData.current_energy <= userData.max_energy - 3) {
+            userData.current_energy += 3;
+            await updateUserData({ current_energy: userData.current_energy });
+        } else {
+            userData.current_energy = userData.max_energy;
+            await updateUserData({ current_energy: userData.current_energy });
+        }
+    }, 3000);
+
+    // Пассивный доход
+    setInterval(async function farmMoney() {
+        const secondIncome = Math.round(userData.hour_income / 3600);
+        userData.score += secondIncome;
+        await updateUserData({ score: userData.score });
+    }, 1000);
+}
+
+// Обработчик клика по кнопке
+button.addEventListener('click', async function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (userData.current_energy >= userData.tap_income) {
+        userData.current_energy -= userData.tap_income;
+        userData.score += userData.tap_income;
+        await updateUserData({
+            current_energy: userData.current_energy,
+            score: userData.score
+        });
     }
 });
+
+// Функция апгрейда
+async function upgrade() {
+    if (userData.score >= userData.coins_for_up) {
+        userData.score -= userData.coins_for_up;
+        userData.coins_for_up += 10000;
+        userData.hour_income += 3600;
+        userData.max_energy += 1000;
+        userData.tap_income++;
+
+        await updateUserData({
+            score: userData.score,
+            coins_for_up: userData.coins_for_up,
+            hour_income: userData.hour_income,
+            max_energy: userData.max_energy,
+            tap_income: userData.tap_income
+        });
+
+        console.log(`Апгрейд успешен! Новый часовой доход: ${userData.hour_income}`);
+    } else {
+        console.log("Недостаточно монет для апгрейда.");
+    }
+}
+
+upgradeButton.addEventListener("click", upgrade);
+
+// Запускаем приложение
+initApp();

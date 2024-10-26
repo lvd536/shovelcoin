@@ -1,26 +1,72 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shovel Coin Clicker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamster Kombat Copy</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
-    <div id="app">
-        <h1>Shovel Coin Clicker</h1>
-        <div id="game">
-            <div id="score">Монеты: <span id="coinCount">0</span></div>
-            <button id="clickButton">
-                <img src="img/button.jpg" alt="Shovel Coin" id="coinImage">
-            </button>
+    <div class="container">
+        <div class="sections">
+            <div class="section">
+                <div class="section__title" style="color: #967e76;">Прибыль за тап</div>
+                <div class="section__info">
+                    <div class="section__img">
+                        <img src="img/hamster-coin.png" alt="">
+                    </div>
+                    <div class="section__text">+<span class="tap-income">5</span></div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section__title" style="color: #797bbe;">Монет для апа</div>
+                <div class="section__info">
+                    <div class="section__text"><span class="coins-for-up">1М</span></div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section__title" style="color: #9dbda6;">Прибыль в час</div>
+                <div class="section__info">
+                    <div class="section__img">
+                        <img src="img/hamster-coin.png" alt="">
+                    </div>
+                    <div class="section__text">+<span class="hour-income">10К</span></div>
+                </div>
+
+            </div>
         </div>
-        <div id="leaderboard">
-            <h2>Таблица лидеров</h2>
-            <ul id="leaderboardList"></ul>
+        <div class="count">
+            <div class="count__img">
+                <img src="img/hamster-coin.png" alt="">
+            </div>
+            <div class="count__txt">1000</div>
+        </div>
+        <div class="button">
+            <div class="button__img">
+                <img src="img/hamster.jpg" alt="">
+            </div>
+        </div>
+        <div class="footer">
+            <div class="footer__energy">
+                <div class="energy__img">
+                    <img src="img/energy.png" alt="">
+                </div>
+                <div class="energy__text">
+                    <span class="current-energy">1000</span>/<span class="max-energy">1000</span>
+                </div>
+            </div>
+            <div class="footer__upgrade">
+                <div class="upgrade__img">
+                    <img src="img/rocket.png" alt="">
+                </div>
+                <div class="upgrade__button">Upgrade</div>
+            </div>
         </div>
     </div>
-    <script type="module" src="script.js"></script>
+    <script src="script.js" type="module"></script>
 </body>
+
 </html>

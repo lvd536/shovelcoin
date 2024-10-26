@@ -5,7 +5,7 @@ bot = telebot.TeleBot("7653825023:AAGdNRmILzxIkqBm64u78QSUw1pumyFBBXs")
 
 web_app_url = "t.me/shovelcoinweb_bot/shovelcoin"
 
-text = "Это приложение - копия гры Hamster Kombat, сделанная за 100 минут!\n\nНажмите на кнопку снизу, что запустить его!"
+text = "Tap tap tap по экранчику!"
 
 button = types.InlineKeyboardButton('Запустить', url=web_app_url)
 keyboard = types.InlineKeyboardMarkup()
