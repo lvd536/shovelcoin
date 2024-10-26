@@ -1,6 +1,6 @@
 * {
-    margin: 0px;
-    padding: 0px;
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -63,16 +63,6 @@ body {
     margin-top: 5px;
 }
 
-.count {}
-
-.count__img {}
-
-.count__txt {}
-
-.button {}
-
-.button__img {}
-
 .container {
     height: 100vh;
     width: 550px;
@@ -127,8 +117,6 @@ body {
     margin-right: 10px;
 }
 
-.energy__text {}
-
 .footer__upgrade {
     display: flex;
     align-items: center;
@@ -138,7 +126,31 @@ body {
 .upgrade__img {
     max-width: 50px;
     margin-right: 10px;
-
 }
 
-.upgrade__button {}
+/* Стили для таблицы лидеров */
+#leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#leaderboard th, 
+#leaderboard td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#leaderboard th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#leaderboard tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+#leaderboard tr:hover {
+    background-color: #ddd;
+}
