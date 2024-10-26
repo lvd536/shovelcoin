@@ -8,12 +8,14 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 let userData = null;
 
-// Функция для получения Telegram ID
+// Функция для получения Telegram ID из URL
 function getTelegramId() {
-    if (window.Telegram && window.Telegram.WebApp) {
-        return window.Telegram.WebApp.initDataUnsafe.user.id;
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    if (id) {
+        return id;
     }
-    console.error('Telegram WebApp is not available');
+    console.error('Telegram ID not found in URL');
     return null;
 }
 
@@ -95,11 +97,6 @@ function updateDisplay() {
 
 // Инициализация приложения
 async function initApp() {
-    // Ждем, пока Telegram WebApp будет готов
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-    }
-
     userData = await getOrCreateUser();
     if (!userData) {
         console.error('Failed to initialize user data');
