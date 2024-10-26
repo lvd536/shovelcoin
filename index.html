@@ -3,18 +3,27 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hamster Kombat Copy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hamster Kombat</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 </head>
 
 <body>
     <div class="container">
-        <!-- Добавляем элемент для отображения отладочной информации -->
-        <div id="debug-info" style="background-color: rgba(0,0,0,0.7); color: white; padding: 10px; margin-bottom: 10px; max-height: 200px; overflow-y: auto;"></div>
+        <button id="toggle-debug" class="debug-toggle">Показать/скрыть отладку</button>
+        <div id="debug-info" class="debug-info hidden"></div>
         
+        <div class="rank-info">
+            <div class="rank-text">
+                Ранг: <span id="current-rank">Новичок</span> → <span id="next-rank">Любитель</span>
+            </div>
+            <div class="rank-progress-bar">
+                <div id="rank-progress" class="rank-progress"></div>
+            </div>
+        </div>
+
         <div class="sections">
             <div class="section">
                 <div class="section__title" style="color: #967e76;">Прибыль за тап</div>
@@ -53,6 +62,12 @@
                 <img src="img/hamster.jpg" alt="">
             </div>
         </div>
+        <div class="upgrades hidden">
+            <button id="upgrade-passiveIncome" class="upgrade-button">Пассивный доход</button>
+            <button id="upgrade-clickPower" class="upgrade-button">Сила клика</button>
+            <button id="upgrade-maxEnergy" class="upgrade-button">Макс. энергия</button>
+            <button id="upgrade-energyRegen" class="upgrade-button">Восст. энергии</button>
+        </div>
         <div class="footer">
             <div class="footer__energy">
                 <div class="energy__img">
@@ -66,10 +81,11 @@
                 <div class="upgrade__img">
                     <img src="img/rocket.png" alt="">
                 </div>
-                <div class="upgrade__button">Upgrade</div>
+                <div class="upgrade__button">Улучшения</div>
             </div>
         </div>
     </div>
+    <div id="notification" class="notification hidden"></div>
     <script type="module" src="script.js"></script>
 </body>
 
