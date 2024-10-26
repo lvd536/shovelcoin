@@ -1,23 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-import { getDatabase, ref, set, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics.js";
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Конфигурация Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyDzwDUN9-X9B4uTxomjJAz4oNIREEVXYqo",
-    authDomain: "shovel-coin.firebaseapp.com",
-    databaseURL: "https://shovel-coin-default-rtdb.firebaseio.com",
-    projectId: "shovel-coin",
-    storageBucket: "shovel-coin.appspot.com",
-    messagingSenderId: "485128858471",
-    appId: "1:485128858471:web:601e1787a95ec9bdea5dc2",
-    measurementId: "G-77Z9QR30EK"
-};
-
-// Инициализация Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const database = getDatabase(app);
+// Конфигурация Supabase
+const supabaseUrl = 'https://tqthmgwbohenijykixzb.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxdGhtZ3dib2hlbmlqeWtpeHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5NjcwMDIsImV4cCI6MjA0NTU0MzAwMn0.QNo46wvV64TCvILyvPRocMKAQjVH9QyZYmXo1SZAcWU'
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 let tg = window.Telegram.WebApp;
 let coinCount = 0;
@@ -32,10 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     tg.expand();
 
     // Получаем данные пользователя
-    userId = tg.initDataUnsafe.user.id;
+    userId = tg.initDataUnsafe.user.id.toString(); // Преобразуем в строку
     userName = tg.initDataUnsafe.user.first_name;
 
-    // Загружаем данные пользователя из Firebase
+    // Загружаем данные пользователя из Supabase
     loadUserData();
 
     clickButton.addEventListener('click', () => {
@@ -46,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLeaderboard();
     });
 
-    function updateLeaderboard() {
+    async function updateLeaderboard() {
         leaderboard.sort((a, b) => b.score - a.score);
 
         leaderboardList.innerHTML = '';
@@ -57,40 +43,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function saveUserData() {
-        set(ref(database, 'users/' + userId), {
-            name: userName,
-            score: coinCount,
-            id: userId // Добавляем сохранение ID пользователя
-        });
+    async function saveUserData() {
+        const { data, error } = await supabase
+            .from('users')
+            .upsert({ id: userId, name: userName, score: coinCount })
+        
+        if (error) console.error('Error saving user data:', error)
     }
 
-    function loadUserData() {
-        const userRef = ref(database, 'users/' + userId);
-        onValue(userRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                coinCount = data.score;
-                coinCountElement.textContent = coinCount;
+    async function loadUserData() {
+        const { data, error } = await supabase
+            .from('users')
+            .select()
+            .eq('id', userId)
+            .single()
+
+        if (error) {
+            if (error.code === 'PGRST116') {
+                // Пользователь не найден, создаем новую запись
+                coinCount = 0;
+                saveUserData();
+            } else {
+                console.error('Error loading user data:', error)
             }
-            loadLeaderboard();
-        });
+        } else if (data) {
+            coinCount = Number(data.score); // Преобразуем в число
+            coinCountElement.textContent = coinCount;
+        }
+
+        loadLeaderboard();
     }
 
-    function loadLeaderboard() {
-        const leaderboardRef = query(ref(database, 'users'), orderByChild('score'), limitToLast(10));
-        onValue(leaderboardRef, (snapshot) => {
-            const data = snapshot.val();
-            leaderboard = [];
-            for (let id in data) {
-                leaderboard.push({
-                    id: id,
-                    name: data[id].name,
-                    score: data[id].score
-                });
-            }
-            leaderboard.reverse(); // Переворачиваем массив, так как limitToLast возвращает в обратном порядке
+    async function loadLeaderboard() {
+        const { data, error } = await supabase
+            .from('users')
+            .select()
+            .order('score', { ascending: false })
+            .limit(10)
+
+        if (error) {
+            console.error('Error loading leaderboard:', error)
+        } else {
+            leaderboard = data.map(user => ({
+                ...user,
+                score: Number(user.score) // Преобразуем score в число
+            }));
             updateLeaderboard();
-        });
+        }
     }
 });
