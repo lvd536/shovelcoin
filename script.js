@@ -29,16 +29,29 @@ document.addEventListener('DOMContentLoaded', () => {
         coinCountElement.textContent = coinCount;
         // Сохраняем данные при каждом клике
         saveUserData();
-        updateLeaderboard();
     });
 
     async function updateLeaderboard() {
-        leaderboard.sort((a, b) => b.score - a.score);
+        const { data, error } = await supabase
+            .from('users')
+            .select()
+            .order('score', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.error('Error loading leaderboard:', error);
+            return;
+        }
+
+        leaderboard = data.map(user => ({
+            ...user,
+            score: Number(user.score)
+        }));
 
         leaderboardList.innerHTML = '';
-        leaderboard.slice(0, 10).forEach((user, index) => {
+        leaderboard.forEach((user, index) => {
             const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${user.name} (ID: ${user.id}): ${user.score}`;
+            li.textContent = `${index + 1}. ${user.name}: ${user.score}`;
             leaderboardList.appendChild(li);
         });
     }
@@ -46,9 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function saveUserData() {
         const { data, error } = await supabase
             .from('users')
-            .upsert({ id: userId, name: userName, score: coinCount })
+            .upsert({ id: userId, name: userName, score: coinCount }, { onConflict: 'id' })
         
-        if (error) console.error('Error saving user data:', error)
+        if (error) {
+            console.error('Error saving user data:', error);
+        } else {
+            updateLeaderboard();
+        }
     }
 
     async function loadUserData() {
@@ -56,39 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
             .from('users')
             .select()
             .eq('id', userId)
-            .single()
+            .single();
 
         if (error) {
             if (error.code === 'PGRST116') {
                 // Пользователь не найден, создаем новую запись
                 coinCount = 0;
-                saveUserData();
+                await saveUserData();
             } else {
-                console.error('Error loading user data:', error)
+                console.error('Error loading user data:', error);
             }
         } else if (data) {
-            coinCount = Number(data.score); // Преобразуем в число
+            coinCount = Number(data.score);
             coinCountElement.textContent = coinCount;
         }
 
-        loadLeaderboard();
-    }
-
-    async function loadLeaderboard() {
-        const { data, error } = await supabase
-            .from('users')
-            .select()
-            .order('score', { ascending: false })
-            .limit(10)
-
-        if (error) {
-            console.error('Error loading leaderboard:', error)
-        } else {
-            leaderboard = data.map(user => ({
-                ...user,
-                score: Number(user.score) // Преобразуем score в число
-            }));
-            updateLeaderboard();
-        }
+        updateLeaderboard();
     }
 });
