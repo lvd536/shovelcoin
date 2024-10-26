@@ -42,19 +42,21 @@ async function getOrCreateUser() {
     debugLog('Attempting to get user with ID: ' + telegramId);
 
     try {
-        const { data, error } = await supabase
+        // Сначала пытаемся получить пользователя
+        let { data, error } = await supabase
             .from('users')
             .select('*')
-            .eq('id', telegramId)
-            .single();
+            .eq('id', telegramId);
 
         if (error) throw error;
 
-        if (data) {
-            debugLog('User found: ' + JSON.stringify(data));
-            return data;
+        // Если пользователь найден, возвращаем его
+        if (data && data.length > 0) {
+            debugLog('User found: ' + JSON.stringify(data[0]));
+            return data[0];
         }
 
+        // Если пользователь не найден, создаем нового
         debugLog('User not found, creating new user');
 
         const newUser = {
@@ -71,6 +73,7 @@ async function getOrCreateUser() {
         const { data: createdUser, error: createError } = await supabase
             .from('users')
             .insert(newUser)
+            .select()
             .single();
 
         if (createError) throw createError;
@@ -130,6 +133,7 @@ async function initApp() {
         debugLog('User: ' + JSON.stringify(window.Telegram.WebApp.initDataUnsafe.user));
     } else {
         debugLog('Telegram WebApp is not available');
+        return; // Прекращаем выполнение, если WebApp недоступен
     }
 
     try {
@@ -144,6 +148,7 @@ async function initApp() {
 
         // Обновление энергии
         setInterval(async function refillEnergy() {
+            if (!userData) return; // Проверка на наличие userData
             if (userData.current_energy <= userData.max_energy - 3) {
                 userData.current_energy += 3;
                 await updateUserData({ current_energy: userData.current_energy });
@@ -155,6 +160,7 @@ async function initApp() {
 
         // Пассивный доход
         setInterval(async function farmMoney() {
+            if (!userData) return; // Проверка на наличие userData
             const secondIncome = Math.round(userData.hour_income / 3600);
             userData.score += secondIncome;
             await updateUserData({ score: userData.score });
